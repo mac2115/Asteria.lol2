@@ -1,1 +1,77 @@
 
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local plr = Players.LocalPlayer
+local NextFrame = RunService.Heartbeat
+local ForceStop = false
+local clonef = clonefunction
+local format = clonef(string.format)
+local gsub = clonef(string.gsub)
+local match = clonef(string.match)
+local append = clonef(appendfile)
+local Type = clonef(type)
+local crunning = clonef(coroutine.running)
+local cwrap = clonef(coroutine.wrap)
+local cresume = clonef(coroutine.resume)
+local cyield = clonef(coroutine.yield)
+local c_lose = clonef(coroutine.close)
+local Pcall = clonef(pcall)
+local Pairs = clonef(pairs)
+local Error = clonef(error)
+local getnamecallmethod = clonef(getnamecallmethod)
+local warn = clonef(warn)
+local print = clonef(print)
+local loading = clonef(loadstring)
+local CoreGui = game:GetService("CoreGui")
+
+function get_funcs()
+	for i, v in pairs(getreg()) do
+		if type(v) == "thread" then
+			if tostring(getscriptfromthread(v)):match("Network") then
+				local func = debug.info(v, 1, "f")
+				if func then
+					if not isourclosure(func) then
+						for _, z in pairs(getupvalues(func)) do
+							if type(z) == "function" and _ == 22 then
+								_G.thread = v
+								return getupvalues(z)[1]
+							end
+						end
+						print("Got Functions : 1/2")
+					else
+						print("Error 0x04 : Ourclosure detected")
+					end
+				end
+			end
+		end
+	end
+end
+
+function hook_func()
+	local func = get_funcs()
+	local backup = clonef(func)
+	if not func then
+		return
+	end
+	old = hookfunction(
+		func,
+		newcclosure(function(self, ...)
+			local args = { ... }
+			if tostring(getcallingscript()) == "Network" then
+				return task.wait(9e9)
+			end
+			return old(self, ...)
+		end)
+	)
+	print("Bypassed : 2/2")
+end
+
+--Good
+local start = tick()
+
+hook_func()
+print("Done in: " .. tick() - start)
+
+print("----")
