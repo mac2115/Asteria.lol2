@@ -1,1 +1,267 @@
+repeat task.wait()until game:IsLoaded()
 
+local clonef = clonefunction
+local loading = clonef(loadstring) -- load the ui
+
+
+local repo = "https://raw.githubusercontent.com/HTDBarsi/LinoriaLib/main/"
+
+local Library = loading(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loading(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loading(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+local Window = Library:CreateWindow({
+  Title = 'Asteria.lol | Blade Ball',
+  Center = true,
+  AutoShow = true,
+  TabPadding = 8,
+  MenuFadeTime = 0.2
+})
+local Tabs = {
+  Main = Window:AddTab('Main'),
+  ['UI Settings'] = Window:AddTab('UI Settings'),
+}
+local Boxes = {
+Parry = Tabs.Main:AddLeftGroupbox("Auto Parry"),
+AutoC = Tabs.Main:AddRightGroupbox("Auto Click"),
+Orbit = Tabs.Main:AddLeftGroupbox("Orbit Ball")
+}
+local tboxes = {} -- tab boxes table, empty here but may be used in the future who knows
+local FrameTimer = tick()
+local FrameCounter = 0
+local FPS = 60
+
+local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(function()
+    FrameCounter = FrameCounter + 1
+
+    if (tick() - FrameTimer) >= 1 then
+        FPS = FrameCounter
+        FrameTimer = tick()
+        FrameCounter = 0
+    end
+
+    Library:SetWatermark(('Asteria.lol | %s fps | %s ms'):format(
+        math.floor(FPS),
+        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
+    ))
+end)
+--// variables
+local userInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local Balls = workspace:WaitForChild("Balls")
+local aliveFol = workspace:WaitForChild("Alive")
+local Ball = nil
+
+-- Constants
+local defaultThreshold = 20
+local tickInt = 0
+local autoParryEnabled = false
+local OldPos = nil
+local Paused = true
+getgenv().orbitEnabled = false
+local rotationSpeed = 10000 * 10000 -- very hot numba
+local radius = 20 -- radius from the ball 20 is prob the best cuz default threshold is 20
+local rotation = CFrame.Angles(0,0,0) -- best rotation will keep u close to da ground without it breaking
+local sin, cos = math.sin, math.cos
+local angularSpeed = rotationSpeed / (math.pi * 2) -- reverse relation shit
+local parryDistance = 2.6
+local heightOnOrbit = 2
+local orbitTask
+
+--// functions
+function VerifyBall(Ball)
+    return Ball:IsA("BasePart") and Ball:IsDescendantOf(Balls) and Ball:GetAttribute("realBall") == true
+end
+
+local function Parry()
+    firesignal(Players.LocalPlayer.PlayerGui.HotbarV2.Block.Activated)
+end
+
+function IsTarget()
+    return Player.Character and Player.Character:FindFirstChild("Highlight")
+end
+
+local function OnBallSpawned(Obj)
+    if not VerifyBall(Obj) then return end
+    Ball = Obj
+end
+
+local function autoClick()
+  firesignal(Players.LocalPlayer.PlayerGui.HotbarV2.Block.Activated)
+end
+
+local function isPlayerAlive()
+  local character = game.Players.LocalPlayer.Character
+  return character and character:IsDescendantOf(aliveFol)
+end
+
+local function getBall()
+  for _, ball in pairs(Balls:GetChildren()) do
+      if VerifyBall(ball) then
+          return ball
+      end
+  end
+  return nil
+end
+
+local function orbitBall()
+    orbitTask = task.spawn(function()
+        local humRP = Player.Character:FindFirstChild("HumanoidRootPart")
+        while getgenv().orbitEnabled do
+            task.wait()
+            if isPlayerAlive() then
+                local t = tick()
+                local angularDistance = t * angularSpeed
+                local targetBall = getBall()
+
+                if targetBall then
+                    local targetPosition = targetBall.Position
+                    if humRP then
+                        humRP.CFrame = rotation * CFrame.new(sin(angularDistance) * 1 * radius, heightOnOrbit, cos(angularDistance) * radius) + targetPosition
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopOrbiting()
+    if orbitTask then
+        task.cancel(orbitTask)
+    end
+end
+
+Balls.ChildRemoved:Connect(stopOrbiting) -- disables the old function so its not redundant and causes frame drops over time
+Balls.ChildAdded:Connect(orbitBall) -- will enable the Orbit ball func when a ball is spawned // checks if it's toggled in the function
+
+task.spawn(function()
+  while true do
+      task.wait()
+      if autoParryEnabled then -- prolly should've used global variables but it works
+          local playerCharacter = Player.Character
+          if not playerCharacter or not IsTarget() then 
+              Paused = true 
+              task.wait()
+              continue 
+          end
+          if Paused then 
+              OldPos = nil 
+          end
+          local torso = playerCharacter:WaitForChild("Torso")
+          if not torso then
+              Paused = true
+              task.wait()
+              continue
+          end
+          local playersTorso = torso.Position
+          local BallPos = Ball.Position
+          if not playersTorso or not BallPos then
+              Paused = true
+              task.wait()
+              continue
+          end
+          local Distance = (BallPos - playersTorso).Magnitude
+          local Velocity = OldPos and (BallPos - OldPos).Magnitude
+          if Paused then 
+              Paused = false 
+          end 
+          if Velocity and Velocity > 0 then
+              local threshold = defaultThreshold + math.floor(Velocity / .5) * parryDistance
+              if Distance <= threshold then
+                  Parry()
+              end
+          end
+          OldPos = BallPos
+          wait(tickint)
+      end
+  end
+end)
+
+Balls.ChildAdded:Connect(OnBallSpawned)
+
+Boxes.Parry:AddToggle("AutoParry", {
+  Text = "Enabled",
+  default = false,
+})
+Toggles.AutoParry:OnChanged(function()
+  autoParryEnabled = Toggles.AutoParry.Value
+end)
+Boxes.Parry:AddSlider("ParryDistance",{
+Text = "Parry Threshold Multiplier",
+Default = 2.6,
+Min = 0,
+Max = 5,
+Rounding = 01,
+Compact = true,
+})
+Options.ParryDistance:OnChanged(function()
+    parryDistance = Options.ParryDistance.Value
+end)
+Boxes.AutoC:AddLabel('Keybind'):AddKeyPicker('AutoClick', {
+  Default = 'X',
+  SyncToggleState = false,
+  Mode = 'Toggle',
+  Text = 'Auto Click',
+  NoUI = false,
+  Callback = function(Value)
+  end,
+})
+Options.AutoClick:SetValue({ 'X', 'Toggle' })
+task.spawn(function()
+  while true do
+      task.wait()
+      local state = Options.AutoClick:GetState()
+      if state then
+          autoClick()
+      end
+      if Library.Unloaded then break end
+  end
+end)
+Boxes.Orbit:AddToggle("OrbitBall", {
+  Text = "Enabled",
+  default = false,
+})
+Toggles.OrbitBall:OnChanged(function()
+  getgenv().orbitEnabled = Toggles.OrbitBall.Value
+  orbitBall() -- since the toggle only plays when the Ball is added this will still run the function if the ball already exists mwa :D
+end)
+Boxes.Orbit:AddSlider("OrbitRadius",{
+  Text = "Radius",
+  Default = 20,
+  Min = 10,
+  Max = 60,
+  Rounding = 1,
+  Compact = true,
+})
+Options.OrbitRadius:OnChanged(function()
+  radius = Options.OrbitRadius.Value
+end)
+Boxes.Orbit:AddSlider("OrbitHeight",{
+  Text = "Height",
+  Default = 2,
+  Min = -5,
+  Max = 10,
+  Rounding = 1,
+  Compact = true,
+})
+Options.OrbitHeight:OnChanged(function()
+  heightOnOrbit = Options.OrbitHeight.Value
+end)
+-- UI Settings
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+MenuGroup:AddButton('Unload', function() Library:Unload() end)
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
+MenuGroup:AddButton('Discord', function() setclipboard("https://discord.gg/N5gh6zmfTV") end)
+Library.ToggleKeybind = Options.MenuKeybind
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+ThemeManager:SetFolder('Asteria.lol')
+SaveManager:SetFolder('Asteria.lol/Blade-Ball')
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
+SaveManager:LoadAutoloadConfig()
