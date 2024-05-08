@@ -163,44 +163,49 @@ function autoraid()
 				return
 			end
 			for i, v in next, Workspace.Entities:GetChildren() do
-				if v.Name ~= plr.Name and v:FindFirstChild("Head") then
-					if (plr.Character.Humanoid.Health / plr.Character.Humanoid.MaxHealth) * 100 > 30 then
-						plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame
-							* CFrame.new(0, 10, 0)
-							* CFrame.Angles(math.rad(-90), 0, 0)
-						plr.Character.HumanoidRootPart.Velocity = Vector3.new()
-						if plr.Character:FindFirstChild("Zanpakuto") then
-							plr.Character.CharacterHandler.Remotes.Weapon:FireServer()
-						end
-						combat:FireServer("LightAttack")
-						getgenv().skill = readfile("skill.lua")
-						if getgenv().skill then
-							local ohString1 = getgenv().skill
-							local ohString2 = "Released"
-							plr.Character.CharacterHandler.Remotes.Skill:FireServer(ohString1, ohString2)
+				if v.Name ~= plr.Name and v:FindFirstChild("Humanoid") then
+					if v.Humanoid.Health > 0 then
+						if (plr.Character.Humanoid.Health / plr.Character.Humanoid.MaxHealth) * 100 >= 65 then
+							plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame
+								* CFrame.new(0, 9, 0)
+								* CFrame.Angles(math.rad(-90), 0, 0)
+							plr.Character.HumanoidRootPart.Velocity = Vector3.new()
+							if plr.Character:FindFirstChild("Zanpakuto") then
+								plr.Character.CharacterHandler.Remotes.Weapon:FireServer()
+							end
+							combat:FireServer("LightAttack")
+							getgenv().skill = readfile("skill.lua")
+							if getgenv().skill then
+								local ohString1 = getgenv().skill
+								local ohString2 = "Released"
+								plr.Character.CharacterHandler.Remotes.Skill:FireServer(ohString1, ohString2)
+							end
+						else
+							plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame
+								* CFrame.new(0, 50, 0)
+								* CFrame.Angles(math.rad(-90), 0, 0)
+							getgenv().skill = readfile("skill.lua")
+							if getgenv().skill then
+								local ohString1 = "Skill"
+								local ohString2 = getgenv().skill
+								local ohString3 = "Pressed"
+								ReplicatedStorage.Remotes.ServerCombatHandler:FireServer(
+									ohString1,
+									ohString2,
+									ohString3
+								)
+							end
 						end
 					else
 						plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame
-							* CFrame.new(0, 50, 0)
-							* CFrame.Angles(math.rad(-90), 0, 0)
-						getgenv().skill = readfile("skill.lua")
-						if getgenv().skill then
-							local ohString1 = "Skill"
-							local ohString2 = getgenv().skill
-							local ohString3 = "Pressed"
-							ReplicatedStorage.Remotes.ServerCombatHandler:FireServer(ohString1, ohString2, ohString3)
-						end
 					end
 				end
 			end --
 			if not _G.queued then
-				if getgenv().skill then
-					writefile("skill.lua", getgenv().skill)
-				end
 				queue_on_teleport([[
 						local clonef = clonefunction
 						local loading= clonef(loadstring)
-						loading(game:HttpGet("https://raw.githubusercontent.com/mac2115/Asteriadebug/main/Asteriaunreleased"))()
+						loading(game:HttpGet("https://raw.githubusercontent.com/mac2115/Asteria.lol2/main/Loader"))()
 						]])
 				queue_on_teleport([[
 						repeat task.wait() until getgenv().loaded == true
@@ -218,13 +223,10 @@ function autoraid()
 			end
 		else
 			if not _G.queued then
-				if getgenv().skill then
-					writefile("skill.lua", getgenv().skill)
-				end
 				queue_on_teleport([[
 						local clonef = clonefunction
 						local loading= clonef(loadstring)
-						loading(game:HttpGet("https://raw.githubusercontent.com/mac2115/Asteriadebug/main/Asteriaunreleased"))()
+						loading(game:HttpGet("https://raw.githubusercontent.com/mac2115/Asteria.lol2/main/Loader"))()
 						]])
 				queue_on_teleport([[
 						repeat task.wait() until getgenv().loaded == true
@@ -532,7 +534,7 @@ local Library = loading(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loading(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loading(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 local Window = Library:CreateWindow({
-	Title = "Asteria.lol | Type Soul",
+	Title = "Asteria.lol",
 	Center = true,
 	AutoShow = true,
 	TabPadding = 8,
@@ -568,6 +570,7 @@ LeftGroupBox:AddDropdown("MyDropdown", {
 
 	Callback = function(Value)
 		getgenv().skill = Value
+		writefile("skill.lua", getgenv().skill)
 	end,
 })
 
@@ -714,7 +717,7 @@ local WatermarkConnection = game:GetService("RunService").RenderStepped:Connect(
 	end
 
 	Library:SetWatermark(
-		("Asteria.lol | %s fps | %s ms"):format(
+		("Asteria.lol beta | %s fps | %s ms"):format(
 			math.floor(FPS),
 			math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
 		)
