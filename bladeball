@@ -44,6 +44,7 @@ local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(
         math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
     ))
 end)
+Library.KeybindFrame.Visible = true -- keybinds visible
 --// variables
 local userInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
