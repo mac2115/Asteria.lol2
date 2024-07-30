@@ -33,6 +33,11 @@ games[14982280667] = games[10912405603]
 games[15076215032] = games[10912405603]
 
 
+games[4855457388] = "demonfall"
+games[5094651510] = games[4855457388]
+games[17554000063] = games[4855457388]
+games[9390071573] = games[4855457388]
+
 
 local clonef = clonefunction
 local loading = clonef(loadstring)
