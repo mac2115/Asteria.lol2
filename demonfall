@@ -261,7 +261,8 @@ function Tween(Target)
 			Progress = math.min(Delta / TotalDuration, 1)
 			MappedPosition = StartingPosition + (PositionDelta * Progress)
 			if (HRP.Position - Target.p).magnitude > 25 then
-				HRP.CFrame = CFrame.new(MappedPosition)
+				HRP.CFrame = CFrame.new(MappedPosition) * CFrame.new(0, getgenv().Settings.Autofarm.Position, 0)
+				* CFrame.Angles(math.rad(angle), 0, 0)
 				getgenv().States.Tweening = true
 			else
 				HRP.CFrame = CFrame.new(Target.p)
