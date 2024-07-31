@@ -91,8 +91,8 @@ SharedRequires["Maid"].Setup = function()
 		"Yetti",
 		"Wolf Hunter",
 		"Alpha Wolf",
-        "Red",
-        "Alpha Desert Claw"
+		"Red",
+		"Alpha Desert Claw",
 	}
 	getgenv().Settings = {
 		Autofarm = { Toggle = false, Mobs = {}, Position = 10 },
@@ -245,9 +245,9 @@ function autofarm()
 		end
 
 		local angle = angles(getgenv().Settings.Autofarm.Position)
-		plr.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame
-			* CFrame.new(0, getgenv().Settings.Autofarm.Position, 0)
-			* CFrame.Angles(math.rad(angle), 0, 0)
+		plr.Character:PivotTo(
+			v:GetPivot() * CFrame.new(0, getgenv().Settings.Autofarm.Position, 0) * CFrame.Angles(math.rad(angle), 0, 0)
+		)
 		ReplicatedStorage.ReplicatedPackage.Remotes.action:FireServer("M1")
 	end
 end
