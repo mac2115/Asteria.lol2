@@ -1,77 +1,259 @@
+local SharedRequires = {}
+setmetatable(SharedRequires, {
+	__metatable = "Secure",
+	__index = function(t, k)
+		return rawget(t, k)
+	end,
+	__newindex = function(t, k, v)
+		return rawset(t, k, v)
+	end,
+})
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local plr = Players.LocalPlayer
-local NextFrame = RunService.Heartbeat
-local ForceStop = false
-local clonef = clonefunction
-local format = clonef(string.format)
-local gsub = clonef(string.gsub)
-local match = clonef(string.match)
-local append = clonef(appendfile)
-local Type = clonef(type)
-local crunning = clonef(coroutine.running)
-local cwrap = clonef(coroutine.wrap)
-local cresume = clonef(coroutine.resume)
-local cyield = clonef(coroutine.yield)
-local c_lose = clonef(coroutine.close)
-local Pcall = clonef(pcall)
-local Pairs = clonef(pairs)
-local Error = clonef(error)
-local getnamecallmethod = clonef(getnamecallmethod)
-local warn = clonef(warn)
-local print = clonef(print)
-local loading = clonef(loadstring)
-local CoreGui = game:GetService("CoreGui")
+local names = {
+	"TweenService",
+	"Workspace",
+	"ReplicatedStorage",
+	"Players",
+	"UserInputService",
+	"RunService",
+	"ScriptContext",
+}
 
-function get_funcs()
-	for i, v in pairs(getreg()) do
-		if type(v) == "thread" then
-			if tostring(getscriptfromthread(v)):match("Network") then
-				local func = debug.info(v, 1, "f")
-				if func then
-					if not isourclosure(func) then
-						for _, z in pairs(getupvalues(func)) do
-							if type(z) == "function" and _ == 22 then
-								_G.thread = v
-								return getupvalues(z)[1]
-							end
-						end
-						print("Got Functions : 1/2")
-					else
-						print("Error 0x04 : Ourclosure detected")
-					end
-				end
-			end
+setmetatable(names, {
+	__metatable = "Locked",
+	__index = function(t, k)
+		return rawget(t, k)
+	end,
+	__newindex = function(t, k, v)
+		return rawset(t, k, v)
+	end,
+})
+
+SharedRequires["Services"] = {}
+
+SharedRequires["Services"].DumpServices = function()
+	local services = {}
+	setmetatable(services, {
+		__metatable = "Locked",
+		__index = function(t, k)
+			return rawget(t, k)
+		end,
+		__newindex = function(t, k, v)
+			return rawset(t, k, v)
+		end,
+	})
+	for _, index in names do
+		local service = game:GetService(index)
+		local str = string.gsub(service.Name, " ", "")
+		service.Name = str
+		table.insert(services, service)
+	end
+	SharedRequires["Services"] = services
+end
+
+SharedRequires["Services"].GetService = function(name: string)
+	for _, v in SharedRequires["Services"] do
+		if rawequal(name, v.Name) then
+			return v
 		end
 	end
 end
 
-function hook_func()
-	local func = get_funcs()
-	local backup = clonef(func)
-	if not func then
-		return
+SharedRequires["Maid"] = {}
+
+SharedRequires["Maid"].Cleanup = function()
+	SharedRequires = {}
+	getgenv().Settings = {}
+	getgenv().Hooks = {}
+	for i, v in getgenv().Connections do
+		v:Disconnect()
 	end
-	old = hookfunction(
-		func,
-		newcclosure(function(self, ...)
-			local args = { ... }
-			if tostring(getcallingscript()) == "Network" then
-				return task.wait(9e9)
-			end
-			return old(self, ...)
-		end)
-	)
-	print("Bypassed : 2/2")
+	getgenv().Connections = {}
+	getgenv().States = {}
+	getgenv().NpcList = {}
+	getgenv().Moblist = {}
 end
 
---Good
-local start = tick()
+SharedRequires["Maid"].Setup = function()
+	getgenv().NpcList = {}
+	getgenv().Settings = { Autofarm = { Toggle = false, Mobs = {}, Position = 10 } }
+	getgenv().Hooks = {}
+	getgenv().States = { Tweening = false }
+	getgenv().Connections = {}
 
-hook_func()
-print("Done in: " .. tick() - start)
+	setmetatable(getgenv().Settings, {
+		__metatable = "Locked",
+		__index = function(t: table, k)
+			return rawget(t, k, val)
+		end,
+		__newindex = function(t, k)
+			return rawset(t, k, val)
+		end,
+	})
+end
 
-print("----")
+SharedRequires["Env"] = {}
+
+SharedRequires["Env"].loadstr = function(link)
+	local ref = clonefunction(loadstring)
+	return ref(game:HttpGet(link))()
+end
+
+SharedRequires["Env"].croutinelib = function()
+	local lib = {}
+	setmetatable(lib, {
+		__metatable = "Locked",
+		__index = function(t, k)
+			return rawget(t, k)
+		end,
+		__newindex = function(t, k, v)
+			return rawset(t, k, v)
+		end,
+	})
+
+	for i, v in coroutine do
+		if type(v) == "function" then
+			local c = clonefunction(v)
+			rawset(lib, i, c)
+		end
+	end
+	return lib
+end
+
+SharedRequires["Env"].getnamecallmethod = function()
+	local c = clonefunction(getnamecallmethod)
+	return c()
+end
+
+SharedRequires["Env"].getcallingscript = function()
+	local c = clonefunction(getcallingscript)
+	return c()
+end
+
+SharedRequires["Env"].CallHelper = function(originalFunc)
+	return setmetatable({}, {
+		__call = function(t, ...)
+			return originalFunc(...)
+		end,
+	})
+end
+
+SharedRequires["Env"].SecureCall = function(originalFunc, args)
+	local tbl = {}
+	setmetatable(tbl, {
+		__call = function(t, ...)
+			return SharedRequires["Env"].CallHelper(originalFunc)(...)
+		end,
+	})
+	return tbl(args)
+end
+
+SharedRequires["Env"].getscriptfromthread = function(thread)
+	if not thread or not rawequal(type(thread), "thread") then
+		return
+	end
+	local func = debug.info(thread, 1, "f")
+	return getfenv(func).script
+end
+
+SharedRequires["Env"].TrampHelper = function(originalFunc, ...)
+	setthreadidentity(3)
+	local result = originalFunc(...)
+	setthreadidentity(3)
+	return result
+end
+
+SharedRequires["Env"].Protect = function(gui)
+    local old;
+    -- hook namecall of find first child for out gui ^
+end
+
+SharedRequires["Env"].TrampolineCall = function(originalFunc, ...)
+	return SharedRequires["Env"].TrampHelper(originalFunc, ...)
+end
+
+SharedRequires["Env"].Pcall = function(func, ...)
+	local c = clonefunction(pcall)
+	return c(func, ...)
+end
+
+SharedRequires["Bypasses"] = {}
+
+SharedRequires["Bypasses"].ClearContext = function()
+	task.spawn(function()
+		while true do
+			task.wait()
+			for i, v in pairs(getconnections(game:GetService("ScriptContext").Error)) do
+				v:Disable()
+			end
+		end
+	end)
+end
+
+SharedRequires["Bypasses"].AdonisBypass = function()
+	for i, v in getgc() do
+		if type(v) ~= "table" then
+			continue
+		end
+	end
+end
+
+SharedRequires["Bypasses"].Scan = function()
+
+end
+
+local Services = SharedRequires["Services"]
+local Maid = SharedRequires["Maid"]
+local LuaEnv = SharedRequires["Env"]
+local croutine = LuaEnv.croutinelib()
+local SecureCall = SharedRequires["Env"].SecureCall
+local getscriptfromthread = SharedRequires["Env"].getscriptfromthread
+local getcallingscript = SharedRequires["Env"].getcallingscript
+local Pcall = SharedRequires["Env"].Pcall
+
+Maid.Setup()
+
+Services.DumpServices()
+
+local Players = Services.GetService("Players")
+
+local ReplicatedStorage = Services.GetService("ReplicatedStorage")
+local UserInputService = Services.GetService("UserInputService")
+local TweenService = Services.GetService("TweenService")
+local Workspace = Services.GetService("Workspace")
+local RunService = Services.GetService("RunService")
+local plr = Players.LocalPlayer
+
+Players = Services.GetService("Players")
+
+SecureCall(print, "-----")
+
+SharedRequires["Bypasses"].ClearContext()
+
+
+function bypass()
+    local old
+    old = hookfunction(
+        getrenv().coroutine.wrap,
+        newcclosure(function(self, ...)
+            if rawequal(getcallingscript().Name, "Network") then
+                local args = { ... }
+                local thread
+                for i, v in args do
+                    if rawequal(type(v),"thread")then
+                        thread = v
+                        return Pcall(coroutine.close, thread)
+                    end
+                end
+                return Pcall(coroutine.close, thread)
+            end
+            return old(self, ...)
+        end)
+    )
+end
+
+bypass()
+
+SecureCall(warn,"//: Asteria Loaded")
+
+Maid.Cleanup()
