@@ -78,7 +78,9 @@ function VerifyBall(Ball)
 end
 
 local function Parry()
-    firesignal(Players.LocalPlayer.PlayerGui.HotbarV2.Block.Activated)
+    keypress(70)
+    wait()
+    keyrelease(70)
 end
 
 function IsTarget()
@@ -91,7 +93,9 @@ local function OnBallSpawned(Obj)
 end
 
 local function autoClick()
-  firesignal(Players.LocalPlayer.PlayerGui.HotbarV2.Block.Activated)
+keypress(70)
+wait()
+  keyrelease(70)
 end
 
 local function isPlayerAlive()
